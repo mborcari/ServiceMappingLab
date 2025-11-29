@@ -35,12 +35,12 @@ Each VM is cloned from a single template to speed up deployment.
 
 ## 📦 Requirements
 
-- Windows 10 or 11  
-- Oracle VirtualBox  
-- Ubuntu Server ISO (22.04 or 24.04 recommended)  
-- PowerShell (for SCP transfers)  
-- DHCP or static network  
-- Basic Linux knowledge  
+- Windows 10 or 11 with 32gb RAM and good processor!
+- Oracle VirtualBox
+- Ubuntu Server ISO (22.04 or 24.04 recommended)
+- PowerShell (for SCP transfers)
+- DHCP or static network
+- Basic Linux knowledge
 
 ---
 
