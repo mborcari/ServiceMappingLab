@@ -13,11 +13,11 @@ Component	Description
 ✨ Overview
 
 This lab simulates a realistic environment that ServiceNow Discovery can map and analyze.
-
+```text
                          +----------------------+
                          |     Load Balancer    |
-                         |       HAProxy        |
-                         |     192.168.2.119     |
+                         |        HAProxy       |
+                         |     192.168.2.119    |
                          +-----------+----------+
                                      |
              -------------------------------------------------
@@ -27,6 +27,7 @@ This lab simulates a realistic environment that ServiceNow Discovery can map and
   |   Flask + PostgreSQL  |                     |       Flask Only      |
   |     192.168.2.120     |                     |     192.168.2.121     |
   +-----------------------+                     +-----------------------+
+```
 
 
 Each VM is created from a single template and cloned for fast setup.
