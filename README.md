@@ -1,19 +1,19 @@
-ServiceMappingLab
+# ServiceMappingLab
 
-A complete VirtualBox-based lab designed to explore and test the ServiceNow Service Mapping module using a simple multi-tier application environment.
+A complete VirtualBox lab to explore and test the ServiceNow Service Mapping module, using a simulated multi-tier application:
 
-<div align="center">
-🧩 Components Included
-Component	Description
-🔀 HAProxy	Load Balancer (HTTP round-robin)
-🧪 APP01	Flask App + PostgreSQL Database
-🌐 APP02	Flask App only
-🐧 Ubuntu Server	All VMs run on Ubuntu Server
-</div>
-✨ Overview
+- HAProxy Load Balancer  
+- Two Flask Web Servers  
+- PostgreSQL Database  
+- All running on Ubuntu Server VMs  
 
-This lab simulates a realistic environment that ServiceNow Discovery can map and analyze.
-```text
+---
+
+## 🧭 Overview
+
+This lab simulates a realistic environment that ServiceNow Discovery can analyze.
+
+```
                          +----------------------+
                          |     Load Balancer    |
                          |        HAProxy       |
@@ -29,215 +29,282 @@ This lab simulates a realistic environment that ServiceNow Discovery can map and
   +-----------------------+                     +-----------------------+
 ```
 
+Each VM is cloned from a single template to speed up deployment.
 
-Each VM is created from a single template and cloned for fast setup.
+---
 
-📦 Requirements
+## 📦 Requirements
 
-Windows 10 or 11
+- Windows 10 or 11  
+- Oracle VirtualBox  
+- Ubuntu Server ISO (22.04 or 24.04 recommended)  
+- PowerShell (for SCP transfers)  
+- DHCP or static network  
+- Basic Linux knowledge  
 
-Oracle VirtualBox
+---
 
-Ubuntu Server ISO (22.04 / 24.04 recommended)
+## 🛠️ 1. Creating the Template VM
 
-PowerShell (for SCP transfers)
+1. Open **VirtualBox → New**
+2. Select:
+   - Ubuntu (64-bit)
+   - 2 GB RAM
+   - 32 GB disk (VDI)
+3. Boot the Ubuntu ISO and install Ubuntu Server
 
-Local network with DHCP or static addressing
+During installation enable:
 
-Basic Linux knowledge
+```
+✔ OpenSSH Server
+```
 
-🚀 1. Create the Base Template VM
-🔧 VirtualBox Settings
-Setting	Value
-OS	Ubuntu (64-bit)
-RAM	2–4 GB
-CPU	2–4 cores
-Disk	25 GB (dynamic VDI)
-Network	Bridged Adapter
-Cable Connected	✔ Enable
-🐧 Ubuntu Installation
+After installation:
 
-During installation:
+```bash
+sudo apt update -y && sudo apt upgrade -y
+sudo shutdown now
+```
 
-✔ Select Ubuntu Server
-✔ Enable OpenSSH Server
-✔ Create user:
+---
 
-Username: lab
-Password: <your-password>
+## 🧬 2. Cloning the Template
 
+Right-click the template → **Clone**
 
-✔ Reboot the VM
-✔ Verify SSH running:
+```
+✔ Full Clone
+✔ Reinitialize MAC Address
+```
 
-systemctl status ssh
+Create:
 
-🌐 2. Configure Networking (Netplan)
+| VM  | Role | Example IP |
+|-----|------|------------|
+| LB | Load Balancer | 192.168.2.119 |
+| APP01 | Flask + PostgreSQL | 192.168.2.120 |
+| APP02 | Flask Only | 192.168.2.121 |
 
-Check interface name:
+VirtualBox Network Adapter:
 
-ip a
+```
+Bridged Adapter
+Cable Connected = ON
+```
 
+---
 
-Edit configuration:
+## 🌐 3. Configuring Static IPs (Netplan)
 
+Edit:
+
+```bash
 sudo nano /etc/netplan/50-cloud-init.yaml
-
+```
 
 Example:
 
+```yaml
 network:
   version: 2
   ethernets:
     enp0s3:
       addresses:
-        - 192.168.2.119/24
+        - 192.168.2.120/24
       gateway4: 192.168.2.1
       nameservers:
         addresses:
           - 8.8.8.8
           - 8.8.4.4
-
-
-Apply settings:
-
-sudo netplan apply
-
-🧼 3. Prepare VM for Cloning
-
-Ensure unique machine IDs for each clone:
-
-sudo rm -f /etc/machine-id
-sudo truncate -s 0 /etc/machine-id
-sudo rm -f /var/lib/dbus/machine-id
-sudo shutdown -h now
-
-🧬 4. Clone the Template (Important)
-
-Clone three VMs:
-
-VM	Role	Example IP
-loadbalance	HAProxy	192.168.2.119
-app01	Flask + PostgreSQL	192.168.2.120
-app02	Flask only	192.168.2.121
-
-Clone with:
-
-✔ Full Clone
-✔ Reinitialize MAC Address
-✔ Network = Bridged Adapter
-
-Repeat netplan config for each VM.
-
-📁 5. Transfer Lab Files (PowerShell SCP)
-
-Example:
-
-scp .\setup.py lab@192.168.2.120:/home/lab/
-scp .\requirements.txt lab@192.168.2.120:/home/lab/
-scp .\haproxy.cfg lab@192.168.2.119:/home/lab/
-
-
-If SSH fails:
-
-sudo systemctl restart ssh
-
-⚙️ 6. Configure HAProxy
-
-Edit configuration:
-
-sudo nano haproxy.cfg
-
-
-Example backend:
-
-backend flask_servers
-    balance roundrobin
-    server app1 192.168.2.120:5000 check
-    server app2 192.168.2.121:5000 check
-
+```
 
 Apply:
 
-sudo mv haproxy.cfg /etc/haproxy/haproxy.cfg
-sudo systemctl restart haproxy
+```bash
+sudo netplan apply
+```
 
-🧰 7. Run the Setup Script
+If interface goes down:
+
+```bash
+sudo ip link set enp0s3 down
+sudo ip link set enp0s3 up
+```
+
+---
+
+## 🔁 4. Copying Files using SCP (PowerShell)
+
+From Windows:
+
+```powershell
+scp .\setup.py lab@192.168.2.120:/home/lab/
+scp .\haproxy.cfg lab@192.168.2.119:/home/lab/
+scp .\app_flask.py lab@192.168.2.120:/home/lab/
+scp .\app_flask.py lab@192.168.2.121:/home/lab/
+```
+
+If SSH fails:
+
+```bash
+sudo ufw allow ssh
+```
+
+---
+
+## ⚙️ 5. Running the Setup Script
 
 Make executable:
 
+```bash
 chmod +x setup.py
-
+```
 
 Execute:
 
+```bash
 sudo python3 setup.py
+```
 
+You will see:
 
-Choose VM role:
+```
+[1] Load Balancer (HAProxy)
+[2] APP01 (Flask + PostgreSQL)
+[3] APP02 (Flask Only)
+```
 
-1 - Load Balancer
-2 - APP1 (Flask + PostgreSQL)
-3 - APP2 (Flask only)
+---
 
+## 🐍 6. Installing Python Requirements
 
-The script will:
+Because Ubuntu uses externally-managed Python:
 
-✔ Install Python packages
-✔ Install system dependencies
-✔ Configure systemd services
-✔ Start Flask automatically
-✔ Setup PostgreSQL (APP01)
+```bash
+pip3 install -r requirements.txt --break-system-packages
+```
 
-🗃️ 8. PostgreSQL Manual Fix (If Needed)
+`requirements.txt` example:
 
-If DB creation fails:
+```
+Flask==3.0.0
+psycopg2-binary
+```
 
-sudo -u postgres psql
+---
 
+## 🐘 7. Configuring PostgreSQL (APP01 Only)
 
-Run:
+Install:
 
+```bash
+sudo apt install -y postgresql postgresql-contrib
+```
+
+Create DB and user:
+
+```bash
+sudo -u postgres psql -c "
 CREATE DATABASE labdb;
 CREATE USER lab WITH ENCRYPTED PASSWORD 'lab123';
 GRANT ALL PRIVILEGES ON DATABASE labdb TO lab;
+"
+```
 
+Validate:
 
-Exit:
+```bash
+sudo -u postgres psql -l
+```
 
-\q
+---
 
-🔍 9. Validate Services
-Flask
+## 🔥 8. Running Flask as a System Service
+
+Create service file:
+
+```bash
+sudo nano /etc/systemd/system/flask.service
+```
+
+Paste:
+
+```ini
+[Unit]
+Description=Flask App
+After=network.target
+
+[Service]
+User=lab
+WorkingDirectory=/home/lab
+ExecStart=/usr/bin/python3 /home/lab/app_flask.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable flask
+sudo systemctl start flask
 sudo systemctl status flask
+```
 
-PostgreSQL
-sudo systemctl status postgresql
+---
 
-HAProxy
-sudo systemctl status haproxy
+## 🌀 9. HAProxy Setup (LB VM)
 
+Edit:
 
-Restart all:
+```bash
+sudo nano /etc/haproxy/haproxy.cfg
+```
 
-sudo systemctl restart flask
+Example config:
+
+```cfg
+frontend http_front
+    bind *:80
+    mode http
+    default_backend app_servers
+
+backend app_servers
+    mode http
+    balance roundrobin
+    server app01 192.168.2.120:5000 check
+    server app02 192.168.2.121:5000 check
+```
+
+Restart:
+
+```bash
 sudo systemctl restart haproxy
-sudo systemctl restart postgresql
+```
 
-🌐 10. Test the Lab
-APP Servers
-http://192.168.2.120:5000
-http://192.168.2.121:5000
+Test:
 
-Load Balancer (Round Robin)
-http://192.168.2.119:5000
+```bash
+curl http://192.168.2.119
+```
 
-🎉 Ready for ServiceNow Discovery
+---
 
-You can now:
+## 🚀 10. Ready for ServiceNow Testing
 
-✔ Run Discovery
-✔ Build Application Services
-✔ Validate TCP connections
-✔ Observe LB relationships
-✔ Practice Mapping and Troubleshooting
+You can now run:
+
+- Discovery
+- Traffic-Based Mapping
+- Service Mapping Patterns
+
+The environment behaves like a real multi-tier service.
+
+---
+
+## 🎯 Done!
+
+Your lab is ready for use.  
+Happy Mapping!
